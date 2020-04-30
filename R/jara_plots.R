@@ -28,12 +28,12 @@ jrplot_indices <- function(jarainput, output.dir=getwd(),as.png=FALSE,width=5,he
 years =   jarainput$data$yr  
 abundance =jarainput$settings$model.type
 dat = jarainput$data$I
-se = sqrt(jarainput$jagsdata$SE2)[1:length(years),]
-y = jarainput$jagsdata$y[1:length(years),]
+se = as.matrix(sqrt(jarainput$jagsdata$SE2)[1:length(years),])
+y = as.matrix(jarainput$jagsdata$y[1:length(years),])
 nI = ncol(y) 
 if(is.null(cols)) cols = jarainput$settings$cols
 Par = list(mfrow=c(1,1),mar = c(4, 4, 1, 1), mgp =c(2.5,1,0),mai = c(0.6, 0.6, 0.1, 0.1),mex=0.8, tck = -0.02,cex=plot.cex)
-if(as.png==TRUE){png(file = paste0(output.dir,"/AnnualRate_",jara$assessment,"_",jara$scenario,".png"), width = width, height = height,
+if(as.png==TRUE){png(file = paste0(output.dir,"/AnnualRate_",jarainput$settings$assessment,"_",jarainput$settings$scenario,".png"), width = width, height = height,
                        res = 200, units = "in")}
 if(add==FALSE) par(Par)
 
@@ -71,9 +71,10 @@ if(as.png==TRUE) dev.off()
 #' @param iucn.cols to use iucn color recommendation or a brighter version if FALSE
 #' @param criteria option to choose between IUCN A1 or A2 thresholds (A2 is default)  
 #' @param Plot if FALSE then only threat status stats are returned 
+#' @param NT_cat option to choose between IUCN categories with NT or without (TRUE is default)   
 #' @return IUCN classification 
 #' @export
-jrplot_iucn <- function(jara, output.dir=getwd(),as.png=FALSE,width=5,height=4.5,plot.cex=1,criteria=c("A2","A1")[1],iucn.cols=TRUE,add=FALSE,Plot=TRUE){
+jrplot_iucn <- function(jara, output.dir=getwd(),as.png=FALSE,width=5,height=4.5,plot.cex=1,criteria=c("A2","A1")[1],iucn.cols=TRUE,add=FALSE,Plot=TRUE,NT_cat=TRUE){
   
   cat(paste0("\n","><> jrplot_iucn() - return % threat classification <><","\n"))
   change= jara$posteriors$pop.change
@@ -84,13 +85,95 @@ jrplot_iucn <- function(jara, output.dir=getwd(),as.png=FALSE,width=5,height=4.5
   mu.change = round(median(change),1)
   sign=""
   if(mu.change>0) sign="+"
-  CR = round(sum(ifelse(change< ifelse(A1,-90,-80),1,0))/length(change)*100,1)
-  EN = round(sum(ifelse(change> ifelse(A1,-90,-80) & change< ifelse(A1,-70,-50),1,0))/length(change)*100,1)
-  VU = round(sum(ifelse(change> ifelse(A1,-70,-50) & change< ifelse(A1,-50,-30),1,0))/length(change)*100,1)
-  LC = round(sum(ifelse(change> -30,1,0))/length(change)*100,1)
+  if(NT_cat==TRUE){
+    CR = sum(ifelse(change<= ifelse(A1,-90,-80),1,0))/length(change)*100
+    EN = sum(ifelse(change> ifelse(A1,-90,-80) & change<= ifelse(A1,-70,-50),1,0))/length(change)*100
+    VU = sum(ifelse(change> ifelse(A1,-70,-50) & change<= ifelse(A1,-50,-30),1,0))/length(change)*100
+    NT = sum(ifelse(change> ifelse(A1,-50,-30) & change<= ifelse(A1,-40,-20),1,0))/length(change)*100
+    LC = sum(ifelse(change> ifelse(A1,-40,-20),1,0))/length(change)*100
+    old_status <- c(CR,EN,VU,NT,LC)
+    
+    if(sum(round(old_status,0))!=100){
+      CR = round_realsum(old_status,0)[1]
+      EN = round_realsum(old_status,0)[2]
+      VU = round_realsum(old_status,0)[3]
+      NT = round_realsum(old_status,0)[4]
+      LC = round_realsum(old_status,0)[5]
+    } else{
+      CR=round(CR,0) 
+      EN=round(EN,0) 
+      VU=round(VU,0) 
+      NT=round(NT,0) 
+      LC=round(LC,0) 
+    }
+    
+    Decline = round(sum(ifelse(change< 0,1,0))/length(change)*100,1)
+    if(iucn.cols==T){
+      cols = c("#60C659","#CCE226","#F9E814","#FC7F3F","#D81E05") # green to red
+    } else {
+      cols=c("green","lightgreen","yellow","orange","red")
+    }
+    
+    if(Plot==TRUE){
+      Par = list(mfrow=c(1,1),mar = c(4, 4, 1, 1), mgp =c(2.5,0.5,0),mai = c(0.6, 0.6, 0.1, 0.1),mex=0.8, tck = -0.02,cex=plot.cex)
+      if(as.png==TRUE){png(file = paste0(output.dir,"/IUCNplot_",jara$assessment,"_",jara$scenario,".png"), width = width, height = height,
+                           res = 200, units = "in")}
+      if(add==FALSE) par(Par)
+      
+      plot(x1,y1,type="n",xlim=c(-100,min(max(30,quantile(change,.99)),1000)),ylim=c(0,max(y1*1.1)),ylab="",xlab="",cex.main=0.9,frame=T,xaxt="n",yaxt="n",xaxs="i",yaxs="i")
+      maxy = max(y1*1.11)
+      x2 = c(ifelse(A1,-40,-20),1500); y2 = c(0,5)
+      polygon(c(x2,rev(x2)),c(rep(maxy,2),rev(rep(0,2))),col="#60C659",border="#60C659")
+      x3 = c(ifelse(A1,-50,-30),x2[1])
+      polygon(c(x3,rev(x3)),c(rep(maxy,2),rev(rep(0,2))),col="#CCE226",border="#CCE226")
+      x4 = c(ifelse(A1,-70,-50),x3[1])
+      polygon(c(x4,rev(x4)),c(rep(maxy,2),rev(rep(0,2))),col="#F9E814",border="#F9E814")
+      x5 = c(ifelse(A1,-90,-80),x4[1])
+      polygon(c(x5,rev(x5)),c(rep(maxy,2),rep(0,2)),col="#FC7F3F",border="#FC7F3F")
+      x6 = c(-100,x5[1])
+      polygon(c(x6,rev(x6)),c(rep(maxy,2),rep(0,2)),col="#D81E05",border="#D81E05")
+      
+      polygon(c(x1,rev(x1)),c(y1,rep(0,length(y1))),col="grey")
+      axis(1,at=seq(-100,max(x1,30)+50,ifelse(max(x1,30)>150,50,25)),tick=seq(-100,max(x1,30),ifelse(max(x1,30)>150,50,25)))
+      mtext(paste("Density"), side=2, outer=F,line=1.9,cex=1)
+      mtext(paste("Change (%)"), side=1, outer=F,line=1.9,cex=1)
+      legend("right",c(paste0("CR (",CR,"%)"),paste0("EN (",EN,"%)"),
+                       paste0("VU (",VU,"%)"),paste0("NT (",NT,"%)"), paste0("LC (",LC,"%)")),col=1,pt.bg=rev(cols),pt.cex=1.4,pch=22,bg="white",cex=1.1)
+      text(ifelse(mean(change)< -80,-80,mean(change)),max(y1*1.03),paste0("Change = ",sign,mu.change,"%"),bg="white",cex=1.2)
+      
+      if(as.png==TRUE) dev.off()
+    } # End IUCN Plot = TRUE
+    categories = c("Pr.Decl","change3GL","CR","EN","VU","NT","LC")  
+    percentages = c(CR,EN,VU,NT,LC)
+    status= ifelse(which(percentages==max(percentages))==5 & max(percentages)<50,"NT",categories[3:7][which(percentages==max(percentages))])
+    perc.risk = data.frame(perc.risk=c(Decline,mu.change,percentages))
+    rownames(perc.risk)=categories
+    out = list()
+    out$perc.risk = perc.risk
+    out$status = status
+    
+  } else {
+    CR = sum(ifelse(change<= ifelse(A1,-90,-80),1,0))/length(change)*100
+    EN = sum(ifelse(change> ifelse(A1,-90,-80) & change<= ifelse(A1,-70,-50),1,0))/length(change)*100
+    VU = sum(ifelse(change> ifelse(A1,-70,-50) & change<= ifelse(A1,-50,-30),1,0))/length(change)*100
+    LC = sum(ifelse(change> ifelse(A1,-50,-30)))/length(change)*100
+    old_status <- c(CR,EN,VU,LC)
+    
+    if(sum(round(old_status,0))!=100){
+      CR = round_realsum(old_status,0)[1]
+      EN = round_realsum(old_status,0)[2]
+      VU = round_realsum(old_status,0)[3]
+      LC = round_realsum(old_status,0)[4]
+    } else{
+      CR=round(CR,0) 
+      EN=round(EN,0) 
+      VU=round(VU,0) 
+      LC=round(LC,0) 
+    }
+    
   Decline = round(sum(ifelse(change< 0,1,0))/length(change)*100,1)
   if(iucn.cols==T){
-    cols = c("#60C659","lightgreen","#F9E814","#FC7F3F","#D81E05")[c(1,3:5)] # green to red
+    cols = c("#60C659","#CCE226","#F9E814","#FC7F3F","#D81E05")[c(1,3:5)] # green to red
   } else {
     cols=c("green","lightgreen","yellow","orange","red")[c(1,3:5)]  
   }
@@ -117,7 +200,7 @@ jrplot_iucn <- function(jara, output.dir=getwd(),as.png=FALSE,width=5,height=4.5
     mtext(paste("Density"), side=2, outer=F,line=1.9,cex=1)
     mtext(paste("Change (%)"), side=1, outer=F,line=1.9,cex=1)
     legend("right",c(paste0("CR (",CR,"%)"),paste0("EN (",EN,"%)"),
-                     paste0("VU (",VU,"%)"),paste0("LC (",LC,"%)")),col=1,pt.bg=c("red","orange","yellow","green"),pt.cex=1.4,pch=22,bg="white",cex=1.1)
+                     paste0("VU (",VU,"%)"),paste0("LC (",LC,"%)")),col=1,pt.bg=rev(cols),pt.cex=1.4,pch=22,bg="white",cex=1.1)
     text(ifelse(mean(change)< -80,-80,mean(change)),max(y1*1.03),paste0("Change = ",sign,mu.change,"%"),bg="white",cex=1.2)
     
     if(as.png==TRUE) dev.off()
@@ -130,6 +213,7 @@ jrplot_iucn <- function(jara, output.dir=getwd(),as.png=FALSE,width=5,height=4.5
   out = list()
   out$perc.risk = perc.risk
   out$status = status
+  }
   
   return(out)
 }
