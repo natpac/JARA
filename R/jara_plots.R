@@ -165,7 +165,7 @@ jrplot_iucn <- function(jara, output.dir=getwd(),as.png=FALSE,width=5,height=4.5
     CR = sum(ifelse(change<= ifelse(A1,-90,-80),1,0))/length(change)*100
     EN = sum(ifelse(change> ifelse(A1,-90,-80) & change<= ifelse(A1,-70,-50),1,0))/length(change)*100
     VU = sum(ifelse(change> ifelse(A1,-70,-50) & change<= ifelse(A1,-50,-30),1,0))/length(change)*100
-    LC = sum(ifelse(change> ifelse(A1,-50,-30)),1,0)/length(change)*100
+    LC = sum(ifelse(change> ifelse(A1,-50,-30),1,0))/length(change)*100
     old_status <- c(CR,EN,VU,LC)
     
     if(sum(round(old_status,0))!=100){
