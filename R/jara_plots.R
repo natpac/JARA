@@ -85,6 +85,15 @@ jrplot_iucn <- function(jara, output.dir=getwd(),as.png=FALSE,width=5,height=4.5
   mu.change = round(median(change),1)
   sign=""
   if(mu.change>0) sign="+"
+  
+  round_realsum <- function(x, digits = 0) {
+    y <- floor(x)
+    indices <- tail(order(x-y), round(sum(x)) - sum(y))
+    y[indices] <- y[indices] + 1
+    y
+  }
+  
+  
   if(NT_cat==TRUE){
     CR = sum(ifelse(change<= ifelse(A1,-90,-80),1,0))/length(change)*100
     EN = sum(ifelse(change> ifelse(A1,-90,-80) & change<= ifelse(A1,-70,-50),1,0))/length(change)*100
