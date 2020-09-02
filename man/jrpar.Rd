@@ -4,12 +4,22 @@
 \alias{jrpar}
 \title{jrplot_pars()}
 \usage{
-jrpar(mfrow = c(1, 1), plot.cex = 1, mai = c(0.35, 0.15, 0, 0.15), labs = TRUE)
+jrpar(
+  mfrow = c(1, 1),
+  plot.cex = 1,
+  mai = NULL,
+  omi = c(0, 0, 0, 0),
+  labs = TRUE
+)
 }
 \arguments{
 \item{mfrow}{determines plot frame set up}
 
 \item{plot.cex}{cex graphic option}
+
+\item{mai}{graphical par for plot margins}
+
+\item{omi}{graphical par for outer plot margins}
 }
 \description{
 Set the par() to options suitable for JARA multi plots

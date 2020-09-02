@@ -11,7 +11,10 @@ jrplot_indices(
   width = 5,
   height = 4.5,
   plot.cex = 1,
+  xlab = "Year",
+  ylab = "Abundance index",
   add = FALSE,
+  add.legend = TRUE,
   cols = NULL
 )
 }
@@ -26,7 +29,13 @@ jrplot_indices(
 
 \item{plot.cex}{cex graphic option}
 
+\item{xlab}{option to change x-axis label}
+
+\item{ylab}{option to change y-axis label}
+
 \item{add}{if TRUE par is not called to enable manual multiplots}
+
+\item{add.legend}{option to add legend}
 
 \item{cols}{option to choose own colour palette}
 

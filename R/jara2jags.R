@@ -3,6 +3,7 @@
 #' Writes JAGS code for JARA into a temporary directory
 #' @param jarainput JARA input object from build_jara()
 #' @export
+#' @author Henning Winker
 jara2jags = function(jarainput){
 
   if(jarainput$settings$model.type=="census"){
@@ -16,7 +17,7 @@ jara2jags = function(jarainput){
     mean.r[i] ~ dnorm(0, 0.001) 
     logN.est[1,i] ~ dnorm(log(Ninit[i]),pow(0.5,-2))   # Prior for initial population size with CV =100%
     }
-  
+    
     ")
     
     if(jarainput$settings$sigma.proc==TRUE){
@@ -37,28 +38,30 @@ jara2jags = function(jarainput){
     if(jarainput$settings$sigma.obs.est==TRUE){
       cat("
       # Obsevation variance
-      # Observation error
-      itau2~ dgamma(0.001,0.001)
-      tau2 <- 1/itau2
-      
+      for(j in 1:nvar)
+      {
+      itau2[j]~ dgamma(0.001,0.001)
+      tau2[j] <- 1/itau2[j]
+      }
       
       for(i in 1:nI)
       {
       for(t in 1:T)
       {
-      var.obs[t,i] <- SE2[t,i]+tau2
+      var.obs[t,i] <- SE2[t,i]+tau2[sets.var[i]]
       ivar.obs[t,i] <- 1/var.obs[t,i]
       # note total observation error (TOE)     
       TOE[t,i] <- sqrt(var.obs[t,i])
-      
-      }}
+      }
+      }
       ",append=TRUE)  
     }else{ cat(" 
       # Obsevation variance
            # Observation error
            itau2~ dgamma(2,2)
            tau2 <- 1/itau2
-           
+           note1 <- nvar
+           note2 <- sets.var
            
            for(i in 1:nI)
            {
@@ -93,8 +96,17 @@ jara2jags = function(jarainput){
     for (i in 1:nI){
     for(t in 1:(EY-1)){
     rdev[t,i] ~ dnorm(0, isigma2) #T(proc.pen[2],proc.pen[3])
-    r[t,i] <- mean.r[i]+ rdev[t,i]-0.5*sigma2    #dnorm(mean.r[i], isigma2)
+    # Theta-Logistic
+    r[t,i] <- mean.r[i]+ rdev[t,i]- 0.5*sigma2
     }}
+    
+    
+    # Carrying Capacity for Projections only
+    for(i in 1:nI){
+    logpk[i] ~ dnorm(log(pk.mu[i]),pow(pk.cv[i],-2))
+    logK[i] <- log(1)-logpk[i]+max(logN.est[pk.y,i])
+    K[i] <- exp(logK[i])
+    }
     
                ",append=TRUE)
     
@@ -117,7 +129,7 @@ jara2jags = function(jarainput){
     for (i in 1:nI){
     for(t in EY:(T-1)){
     rdev[t,i] ~ dnorm(0, pow(0.01,-2))
-    r[t,i] <- ifelse(logN.est[t,i]>max(logN.est[1:(EY-1),i])+log(Ks[i]),0,r.proj[i]) 
+    r[t,i] <- r.proj[i]*(1-pow(exp(logN.est[t,i]-logK[i]),theta))
       
     }}
     ",append=TRUE)}else{
@@ -125,24 +137,19 @@ jara2jags = function(jarainput){
     for (i in 1:nI){
     for(t in EY:(T-1)){
     rdev[t,i] ~ dnorm(0, isigma2)T(proc.pen[2],proc.pen[3])
-    r[t,i] <- ifelse(logN.est[t,i]>max(logN.est[1:(EY-1),i])+log(Ks[i]),-0.01,r.proj[i]+ rdev[t,i]-0.5*sigma2) 
+    r[t,i] <- r.proj[i]*(1-pow(exp(logN.est[t,i]-logK[i]),theta))+ rdev[t,i]-0.5*sigma2) 
     }}
     ",append=TRUE)  
     }
     
     cat("  
-    #for(t in 1:(T)){
-    #for (i in 1:nI){
-    #devK[t,i]  <- ifelse(logN.est[t,i]>log(Ks[i]),logN.est[t,i]-log(Ks[i]),0) # penalty if N > K 
-    #penK[t,i] ~ dnorm(devK[t,i],pow(0.1,-2))
-    #}}
-    
     
     lambda[1] <- 1
     # Observation process
     for (t in 1:T) {
     for(i in 1:nI){
     y[t,i] ~ dnorm(logN.est[t,i], ivar.obs[t,i])
+    ppd[t,i] ~ dlnorm(logN.est[t,i], ivar.obs[t,i])
     }}
     
     # Population sizes on real scale
@@ -179,7 +186,6 @@ jara2jags = function(jarainput){
       logq[i] <-  log(q[i])
       }
       
-      
       ")
     
     if(jarainput$settings$sigma.proc==TRUE){
@@ -200,28 +206,30 @@ jara2jags = function(jarainput){
     if(jarainput$settings$sigma.obs.est==TRUE){
       cat("
         # Obsevation variance
-        # Observation error
-        itau2~ dgamma(0.001,0.001)
-        tau2 <- 1/itau2
-        
-        
-        for(i in 1:nI)
-        {
-        for(t in 1:T)
-        {
-        var.obs[t,i] <- SE2[t,i]+tau2
-        ivar.obs[t,i] <- 1/var.obs[t,i]
-        # note total observation error (TOE)     
-        TOE[t,i] <- sqrt(var.obs[t,i])
-        
-        }}
+      for(j in 1:nvar)
+      {
+      itau2[j]~ dgamma(0.001,0.001)
+      tau2[j] <- 1/itau2[j]
+      }
+      
+      for(i in 1:nI)
+      {
+      for(t in 1:T)
+      {
+      var.obs[t,i] <- SE2[t,i]+tau2[sets.var[i]]
+      ivar.obs[t,i] <- 1/var.obs[t,i]
+      # note total observation error (TOE)     
+      TOE[t,i] <- sqrt(var.obs[t,i])
+      }
+      }
         ",append=TRUE)  
     }else{ cat(" 
       # Obsevation variance
              # Observation error
              itau2~ dgamma(2,2)
              tau2 <- 1/itau2
-             
+             note1 <- nvar
+             note2 <- sets.var
              
              for(i in 1:nI)
              {
@@ -257,7 +265,13 @@ jara2jags = function(jarainput){
       r[t] <- mean.r+rdev[t]-0.5*sigma2   
       logY.est[t+1] <- logY.est[t] + r[t] 
       }
-
+      
+      # Carrying Capacity for Projections only
+      logpk ~ dnorm(log(pk.mu),pow(pk.cv,-2))
+      logK <- log(1)-logpk+max(logY.est[pk.y])
+      K <- exp(logK)
+      #logK <- log(pow(pk,-1))+max(I[pk.y])
+      #K <- exp(logK)
       ",append=TRUE)
     
     if(jarainput$settings$prjr.type=="mean"){
@@ -275,16 +289,16 @@ jara2jags = function(jarainput){
       cat("
       for (t in EY:(T)){
       rdev[t] ~ dnorm(0, pow(0.01,-2))
-      r[t] <- ifelse(logY.est[t]>(max(logY.est[1:(EY-1)])+log(Ks)),0,r.proj) 
+      r[t] <- r.proj*(1-pow(exp(logY.est[t]-logK),theta)) 
       logY.est[t+1] <- logY.est[t]+r[t]   
       }
       ",append=TRUE)} else {
         cat("
       for (t in EY:(T)){
             rdev[t] ~ dnorm(0, pow(isigma2,-2))T(0.5*proc.pen[2],0.5*proc.pen[3])
-            r[t] <- ifelse(logY.est[t]>(max(logY.est[1:(EY-1)])+log(Ks)),0,r.proj+rdev[t]-0.5*sigma2) 
+            r[t] <- r.proj*(1-pow(exp(logY.est[t]-logK),theta))+rdev[t]-0.5*sigma2 
             logY.est[t+1] <- logY.est[t] + r[t] 
-            #devK[t]  <- ifelse(logY.est[t+1]>log(Ks),logY.est[t+1]-log(Ks),0) # penalty if Y > K 
+          
       }
       ",append=TRUE)}  
     
@@ -298,10 +312,12 @@ jara2jags = function(jarainput){
       for (t in 1:EY) {
       for(i in 1:nI){
       y[t,i] ~ dnorm(logY.est[t]+logq[i], ivar.obs[t,i])
+      ppd[t,i] ~ dlnorm(logY.est[t]+logq[i], ivar.obs[t,i])
       }}
       for (t in (EY+1):T) {
       for(i in 1:nI){
       y[t,i] ~ dnorm(logY.est[t]+logq[i],pow(0.001,-2)) # does not effect projections
+      ppd[t,i] ~ dlnorm(logY.est[t]+logq[i], ivar.obs[t,i])
       }}
       
 

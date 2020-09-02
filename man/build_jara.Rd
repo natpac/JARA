@@ -13,13 +13,16 @@ build_jara(
   GL = NULL,
   start.year = NA,
   end.year = NA,
-  sigma.obs.est = TRUE,
   fixed.obsE = NULL,
+  variance.weighting = "equal",
   sigma.proc.fixed = FALSE,
   proc.pen = NULL,
-  Klim = FALSE,
-  K.manual = FALSE,
-  prjr.type = c("all", "GL1", "year")[1],
+  proj.mod = c("theta10", "logistic", "theta.value")[1],
+  pk.prior = c(0.25, 0.1),
+  pk.yr = NULL,
+  pk.i = NULL,
+  proj.r = c("all", "GL1", "year")[1],
+  proj.yrs.user = NULL,
   proj.stoch = FALSE
 )
 }
@@ -40,19 +43,25 @@ build_jara(
 
 \item{end.year}{subsetting option for end year}
 
-\item{sigma.obs.est}{Estimates additional variance}
+\item{fixed.obsE}{minimum plausible observation error (fixed)}
 
-\item{fixed.obsE}{minimum plausible process error (fixed)}
+\item{variance.weighting}{option "equal", "model", "fixed" or user assinged vector e.g. c(1,1,2)}
 
-\item{sigma.proc.fixed}{option to fix the process error (default FALSE)}
+\item{sigma.proc.fixed}{option to fix the process error e.g = 0.1 (default FALSE)}
 
 \item{proc.pen}{advanced user setting to penalize extreme process error deviations}
 
-\item{Klim}{penalty to restrict extrem values during projections c(TRUE, FALSE)}
+\item{proj.mod}{specified by theta c("theta10","logistic")}
 
-\item{K.manual}{option to specify a carrying capacity for each census time series}
+\item{pk.prior}{lognormal prior of population to K c(mu,lod.sd,yr) envoked during projections}
 
-\item{prjr.type}{# rate of change for c("all","GL1", years), "all" is default}
+\item{pk.yr}{reference year for the depletion prior. NULL ratio to max pred. abundance across all years}
+
+\item{pk.i}{option to specify specify different depletion levels for colonies in the census model}
+
+\item{proj.r}{# rate of change for c("all","GL1", years), "all" is default}
+
+\item{proj.yrs.user}{option to overwrite GL and costomize projections for forecasting}
 
 \item{proj.stoch}{allows for projections with process error c(TRUE, FALSE), FALSE is default}
 }
@@ -61,4 +70,13 @@ List to be used as data input to JARA JAGS model
 }
 \description{
 Creates a data list with JABBA input and settings to be passed to fit_jara()
+}
+\examples{
+data(jaradata)
+inp = jrdat$Afr_penguin
+buildjr <- build_jara(I = inp$I,GL=9,model.type="census")
+jrplot_indices(buildjr)
+}
+\author{
+Henning Winker
 }

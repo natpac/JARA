@@ -6,16 +6,21 @@
 \usage{
 jrplot_poptrj(
   jara,
+  plotGL = NULL,
   output.dir = getwd(),
   as.png = FALSE,
   width = 5,
   height = 4.5,
+  xlab = "Year",
+  ylab = "Abundance",
   plot.cex = 1,
   add = FALSE
 )
 }
 \arguments{
 \item{jara}{output list from fit_jara}
+
+\item{plotGL}{TRUE/FALSE indicates Generation Length}
 
 \item{output.dir}{directory to save plots}
 
@@ -24,6 +29,10 @@ jrplot_poptrj(
 \item{width}{plot width}
 
 \item{height}{plot hight}
+
+\item{xlab}{option to change x-axis label}
+
+\item{ylab}{option to change y-axis label}
 
 \item{plot.cex}{cex graphic option}
 

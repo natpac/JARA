@@ -6,6 +6,7 @@
 \usage{
 fit_jara(
   jarainput,
+  credibility = 0.95,
   ni = 9000,
   nt = 2,
   nb = 2000,
@@ -14,12 +15,15 @@ fit_jara(
   save.all = FALSE,
   save.csvs = FALSE,
   save.jarafile = TRUE,
+  peels = NULL,
   output.dir = getwd(),
   quickmcmc = FALSE
 )
 }
 \arguments{
-\item{jarainput}{List of input variables as output by build_jara()
+\item{jarainput}{List of input variables as output by build_jara()}
+
+\item{credibility}{Confidence Credibility Value with default of 0.95 
 MCMC settings}
 
 \item{ni}{number of iterations}
@@ -38,6 +42,8 @@ MCMC settings}
 
 \item{save.jarafile}{saves jara model and convergence stats as .txt file (default = TRUE)}
 
+\item{peels}{= NULL, # retrospective 'peel' option}
+
 \item{output.dir}{path to save plot. default is getwd()}
 
 \item{quickmcmc}{option "test run" jara with short (fast) mcmc chains}
@@ -49,4 +55,19 @@ A result list containing estimates of JARA model input, settings and results
 }
 \description{
 Fits JARA model in JAGS and produce output object as list()
+}
+\examples{
+data(jaradata)
+inp = jrdat$Yellowspot_skate
+buildjr <- build_jara(I = inp$I,se=inp$SE,GL=12)
+fitjr <- fit_jara(buildjr)
+jrplot_fits(fitjr)
+jrplot_trjfit(fitjr)
+jrplot_poptrj(fitjr)
+jrplot_changes(fitjr)
+jrplot_state(fitjr)
+jrplot_iucn(fitjr)
+}
+\author{
+Henning Winker and Richard Sherley
 }
